@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"              # Ollama API
+    volumes:
+      - ollama:/root/.ollama       # models & config
+    # ---------- NVIDIA GPU (optional) ----------
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: ["gpu"]
+    #           driver: nvidia
+    #           count: all
+    # environment:
+    #   - NVIDIA_VISIBLE_DEVICES=all
+    #   - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    # -------------------------------------------
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:latest
+    container_name: openwebui
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    ports:
+      - "3000:8080"                # Web UI at http://localhost:3000
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      # Uncomment to disable login requirement:
+      # - WEBUI_AUTH=False
+    volumes:
+      - openwebui:/app/backend/data
+
+  # (Optional) Auto-pull one or more models on first run
+  # Edit the list after '&&' as you like and uncomment this service.
+  # model-puller:
+  #   image: ollama/ollama:latest
+  #   depends_on:
+  #     - ollama
+  #   entrypoint: /bin/sh
+  #   command: -lc "sleep 5 && \
+  #                 OLLAMA_HOST=http://ollama:11434 \
+  #                 ollama pull llama3.1:8b && \
+  #                 ollama pull mistral && \
+  #                 echo 'Models ready.'"
+  #   restart: "no"
+
+volumes:
+  ollama:
+  openwebui:
+
